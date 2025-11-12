@@ -13,18 +13,23 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
       
-      - name: Debug directory structure
-        run: |
-          echo "Содержимое репозитория:"
-          ls -la
-          echo "Содержимое app-src:"
-          ls -la app-src/
-      
       - name: Build Docker image
         run: |
           cd app-src
           docker build -t myapp:test .
       
-      - name: Test container
+      - name: Test container startup
         run: |
-          docker run --rm myapp:test echo "Container works!"
+          # Запускаем контейнер в фоне
+          docker run -d --name test-app -p 8080:8080 myapp:test
+          sleep 10  # Ждем запуска приложения
+          
+          # Проверяем что контейнер работает
+          docker ps | grep test-app
+          
+          # Проверяем что приложение отвечает
+          curl -f http://localhost:8080/weatherforecast || exit 1
+          
+          # Останавливаем контейнер
+          docker stop test-app
+          docker rm test-app
