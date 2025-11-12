@@ -7,7 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  # Job 1: Проверка качества Dockerfile
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      
+      - name: Lint Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: app-src/Dockerfile
+          failure-threshold: error  # Падать только на errors, warnings разрешены
+          output-file: hadolint-report.txt
+      
+      - name: Upload Hadolint report
+        uses: actions/upload-artifact@v4
+        if: always()  # Загружать артефакт даже если предыдущий шаг упал
+        with:
+          name: hadolint-report
+          path: hadolint-report.txt
+
+  # Job 2: Сборка (запускается только после успешного lint)
   build:
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
@@ -17,6 +40,7 @@ jobs:
         run: |
           cd app-src
           docker build -t myapp:test .
+          echo "Docker image built successfully!"
       
       - name: Test container startup
         run: |
@@ -33,3 +57,16 @@ jobs:
           # Останавливаем контейнер
           docker stop test-app
           docker rm test-app
+      
+      - name: Save build log
+        run: |
+          echo "Build completed at $(date)" > build-log.txt
+          docker images | grep myapp >> build-log.txt
+          echo "Image size:" >> build-log.txt
+          docker images myapp --format "table {{.Tag}}\t{{.Size}}" >> build-log.txt
+      
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build-log.txt
