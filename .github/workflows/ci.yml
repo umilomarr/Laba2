@@ -86,4 +86,5 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/myapp:1.0.0
             ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.sha }}
